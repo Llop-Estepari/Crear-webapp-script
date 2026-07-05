@@ -27,7 +27,7 @@ chmod +x ~/.local/bin/crear-webapp
 ## Modo de uso
 ### Opción 1: Pasar argumentos por parámetro
 ```bash
-crear-webapp "Nombre de la App" [https://ejemplo.com](https://ejemplo.com)
+crear-webapp "Nombre de la App" "https://ejemplo.com"
 ```
 ### Opción 2: Modo interactivo
 Si ejecuta el comando sin argumentos, el script solicitará los datos automáticamente:
