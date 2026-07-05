@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Salir inmediatamente si ocurre un error
+set -e
+
+# Requerir dependencias básicas
+if ! command -v chromium &> /dev/null; then
+    echo "Error: Chromium no está instalado. Instálelo con: sudo pacman -S chromium"
+    exit 1
+fi
+
+if ! command -v curl &> /dev/null; then
+    echo "Error: curl no está instalado. Instálelo con: sudo pacman -S curl"
+    exit 1
+fi
+
+# Asignar variables desde parámetros ($1 y $2)
+APP_NAME="$1"
+APP_URL="$2"
+
+# Si no se pasaron parámetros, pedirlos interactivamente
+if [ -z "$APP_NAME" ] || [ -z "$APP_URL" ]; then
+    echo "Nota: No se pasaron parámetros. Iniciando modo interactivo..."
+    read -p "Introduce el nombre de la aplicación: " APP_NAME
+    read -p "Introduce la URL completa (ej. https://ejemplo.com): " APP_URL
+fi
+
+# Validar que finalmente no estén vacíos
+if [ -z "$APP_NAME" ] || [ -z "$APP_URL" ]; then
+    echo "Error: El nombre y la URL son obligatorios."
+    exit 1
+fi
+
+# Normalizar nombre para el archivo (reemplazar espacios por guiones y pasar a minúsculas)
+APP_ID=$(echo "$APP_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+
+# Definir rutas
+DIR_APPS="$HOME/.local/share/applications"
+DIR_ICONS="$HOME/.local/share/icons"
+FILE_DESKTOP="$DIR_APPS/$APP_ID.desktop"
+PATH_ICON="$DIR_ICONS/$APP_ID.png"
+
+# Crear directorios si no existen
+mkdir -p "$DIR_APPS"
+mkdir -p "$DIR_ICONS"
+
+# Intentar descargar el favicon del sitio web para el icono
+echo "Descargando icono desde la web..."
+DOMAIN=$(echo "$APP_URL" | awk -F/ '{print $3}')
+curl -sL "https://www.google.com/s2/favicons?domain=$DOMAIN&sz=128" -o "$PATH_ICON" || echo "No se pudo obtener el icono. Se usará el genérico."
+
+# Verificar si el icono se descargó correctamente, si no, usar el genérico del sistema
+if [ ! -f "$PATH_ICON" ] || [ ! -s "$PATH_ICON" ]; then
+    PATH_ICON="web-browser"
+fi
+
+# Crear el archivo .desktop
+cat <<EOF > "$FILE_DESKTOP"
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=$APP_NAME
+Exec=chromium --app=$APP_URL
+Icon=$PATH_ICON
+Terminal=false
+Categories=Network;
+Comment=Aplicación web creada al estilo Omarchy
+EOF
+
+# Actualizar la base de datos de aplicaciones del entorno de escritorio
+update-desktop-database "$DIR_APPS"
+
+echo "Aplicación '$APP_NAME' creada con éxito."
